@@ -12,6 +12,7 @@ import (
 
 	"golang.org/x/time/rate"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
@@ -63,6 +64,20 @@ func main() {
 	//defind path route
 	userHandler := DatabaseHandler{db: db}
 	r := gin.Default()
+	// - No origin allowed by default
+	// - GET, POST, PUT, PATCH, DELETE HEAD methods
+	// - Credentials share disabled
+	// - Preflight requests cached for 12 hours
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{os.Getenv("HOST")}
+	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE"}
+	config.AllowHeaders = []string{
+		"Origin",
+		"Authorization",
+		"TransactionID",
+	}
+	r.Use(cors.New((config)))
+
 	todoHandler := todo.NewTodoHandler(db)
 	authHandler := auth.NewAuthHandler(db)
 

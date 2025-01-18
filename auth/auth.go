@@ -50,7 +50,7 @@ func (t *AuthHandler) Accesstoken(signature string) gin.HandlerFunc {
 			return
 		}
 		result := t.db.Where("Name = ?", body.User).First(&User{})
-		fmt.Println(*result)
+		fmt.Println(string(result.Name()))
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.MapClaims{
 			"sub": "user_id",
 			"exp": time.Now().Add(15 * time.Minute).Unix(),
