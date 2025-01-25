@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/tawatchai7034/todo/auth"
+	"github.com/tawatchai7034/todo/entites"
 	"github.com/tawatchai7034/todo/todo"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -58,7 +59,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	db.AutoMigrate(&todo.Todo{}, &User{})
+	db.AutoMigrate(&entites.Todo{}, &User{})
 	// db.Create(&User{Name: "Fluke", Guid: uuid.New()})
 
 	//defind path route
