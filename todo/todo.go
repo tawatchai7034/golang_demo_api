@@ -4,12 +4,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tawatchai7034/todo/entites"
 	"gorm.io/gorm"
 )
 
 type Todo struct {
-	gorm.Model
-	Title string `json:"text"`
+	entites.Todo
 }
 
 func (Todo) TableName() string {
