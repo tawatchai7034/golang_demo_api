@@ -12,12 +12,13 @@ import (
 
 	"golang.org/x/time/rate"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/tawatchai7034/todo/auth"
 	"github.com/tawatchai7034/todo/entites"
+	"github.com/tawatchai7034/todo/router"
+	"github.com/tawatchai7034/todo/store"
 	"github.com/tawatchai7034/todo/todo"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -64,33 +65,21 @@ func main() {
 
 	//defind path route
 	userHandler := DatabaseHandler{db: db}
-	r := gin.Default()
-	// - No origin allowed by default
-	// - GET, POST, PUT, PATCH, DELETE HEAD methods
-	// - Credentials share disabled
-	// - Preflight requests cached for 12 hours
-	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{os.Getenv("HOST")}
-	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE"}
-	config.AllowHeaders = []string{
-		"Origin",
-		"Authorization",
-		"TransactionID",
-	}
-	r.Use(cors.New((config)))
+	r := router.NewMyRouter()
 
-	todoHandler := todo.NewTodoHandler(db)
-	authHandler := auth.NewAuthHandler(db)
+	gormStore := store.NewGormStore(db)
+	todoHandler := todo.NewTodoHandler(gormStore)
+	authHandler := auth.NewAuthHandler(gormStore)
 
 	//middleware
-	protected := r.Group("", auth.Protect([]byte(os.Getenv("JWT_SECRET_KEY"))))
+	protected := r.Group("", router.Protect())
 
 	//path get token
-	r.POST("/login", authHandler.Accesstoken(os.Getenv("JWT_SECRET_KEY")))
+	r.AUTHLOGIN("/login", authHandler.Accesstoken)
 
 	// router path
 	protected.GET("/user", userHandler.User)
-	protected.POST("/todo", todoHandler.NewTask)
+	protected.POST("/todo", router.NewGinHandler(todoHandler.NewTask))
 
 	//path get build commit
 	r.GET("/buildLog", func(ctx *gin.Context) {

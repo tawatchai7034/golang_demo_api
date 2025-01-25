@@ -1,9 +1,6 @@
 package auth
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"time"
@@ -26,49 +23,42 @@ type Login struct {
 }
 
 type AuthHandler struct {
-	db *gorm.DB
+	store Storer
 }
 
-func NewAuthHandler(db *gorm.DB) *AuthHandler {
-	return &AuthHandler{db: db}
+type Storer interface {
+	Login(*Login) error
 }
 
-func (t *AuthHandler) Accesstoken(signature string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var body Login
-		jsonData, err := io.ReadAll(c.Request.Body)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-		err = json.Unmarshal(jsonData, &body)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"status":  "error",
-				"massage": err.Error(),
-				"result":  nil,
-			})
-			return
-		}
-		result := t.db.Where("Name = ?", body.User).First(&User{})
-		fmt.Println(string(result.Name()))
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.MapClaims{
-			"sub": "user_id",
-			"exp": time.Now().Add(15 * time.Minute).Unix(),
+type Context interface {
+	Bind(interface{}) error
+	JSON(int, interface{})
+	TransactionID() string
+	Audience() string
+}
+
+func NewAuthHandler(store Storer) *AuthHandler {
+	return &AuthHandler{store: store}
+}
+
+func (t AuthHandler) Accesstoken(c Context) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.MapClaims{
+		"sub": "user_id",
+		"exp": time.Now().Add(15 * time.Minute).Unix(),
+	})
+	key := os.Getenv("JWT_SECRET_KEY")
+	ss, err := token.SignedString([]byte(key))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"massage": err.Error(),
+			"result":  nil,
 		})
-		key := os.Getenv("JWT_SECRET_KEY")
-		ss, err := token.SignedString([]byte(key))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"status":  "error",
-				"massage": err.Error(),
-				"result":  nil,
-			})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "Success",
-			"massage": "Success",
-			"result":  ss,
-		})
+		return
 	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "Success",
+		"massage": "Success",
+		"result":  ss,
+	})
 }

@@ -2,14 +2,20 @@ package todo
 
 import (
 	"net/http"
+	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/tawatchai7034/todo/entites"
-	"gorm.io/gorm"
 )
 
 type Todo struct {
-	entites.Todo
+	Title     string `json:"text" binding:"required"`
+	ID        uint   `gorm:"primarykey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type Storer interface {
+	New(*Todo) error
 }
 
 func (Todo) TableName() string {
@@ -17,38 +23,45 @@ func (Todo) TableName() string {
 }
 
 type TodoHandler struct {
-	db *gorm.DB
+	store Storer
 }
 
-func NewTodoHandler(db *gorm.DB) *TodoHandler {
-	return &TodoHandler{db: db}
+type Context interface {
+	Bind(interface{}) error
+	JSON(int, interface{})
+	TransactionID() string
+	Audience() string
 }
 
-func (t *TodoHandler) NewTask(c *gin.Context) {
+func NewTodoHandler(store Storer) *TodoHandler {
+	return &TodoHandler{store: store}
+}
+
+func (t *TodoHandler) NewTask(c Context) {
 	var todo Todo
-	if err := c.ShouldBindJSON(&todo); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "error",
-			"massage": err.Error(),
-			"result":  nil,
+	if err := c.Bind(&todo); err != nil {
+		c.JSON(http.StatusBadRequest, entites.ResponseModel{
+			Status:  "error",
+			Message: err.Error(),
+			Result:  nil,
 		})
 		return
 	}
 
 	// create table in database and row data
-	r := t.db.Create(&todo)
-	if err := r.Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "error",
-			"massage": err.Error(),
-			"result":  nil,
+	err := t.store.New(&todo)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, entites.ResponseModel{
+			Status:  "error",
+			Message: err.Error(),
+			Result:  nil,
 		})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"status":  "Success",
-		"massage": "Success",
-		"result":  todo.Model.ID,
+	c.JSON(http.StatusCreated, entites.ResponseModel{
+		Status:  "Success",
+		Message: "Success",
+		Result:  todo.ID,
 	})
 }

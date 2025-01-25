@@ -10,7 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-func Protect(signature []byte) gin.HandlerFunc {
+func Protect() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		auth := ctx.Request.Header.Get("Authorization")
 		token := strings.TrimPrefix(auth, "Bearer ")

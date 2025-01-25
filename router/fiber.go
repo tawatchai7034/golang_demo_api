@@ -4,7 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/pallat/todoapi/todo"
+	"github.com/tawatchai7034/todo/todo"
 )
 
 type FiberRouter struct {
